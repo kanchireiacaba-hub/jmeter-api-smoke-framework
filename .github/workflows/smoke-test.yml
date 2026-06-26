@@ -15,7 +15,6 @@ jobs:
 smoke-test:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout Repository
     uses: actions/checkout@v4
@@ -79,4 +78,3 @@ steps:
         echo "| HTML Report | Uploaded as Artifact |"
         echo "| JTL Results | Uploaded as Artifact |"
       } >> "$GITHUB_STEP_SUMMARY"
-```
