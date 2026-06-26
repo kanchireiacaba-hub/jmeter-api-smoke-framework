@@ -1,25 +1,25 @@
 name: JMeter API Smoke Test
 
-'on':
+on:
   push:
     branches:
       - main
 
-workflow_dispatch:
+  workflow_dispatch:
 
-schedule:
-# Monday-Friday 8:00 AM Philippine Time (00:00 UTC)
-- cron: '0 0 * * 1-5'
+  schedule:
+    - cron: '0 0 * * 1-5'
 
 jobs:
-smoke-test:
-runs-on: ubuntu-latest
+  smoke-test:
+    runs-on: ubuntu-latest
 
-steps:
+```
+  steps:
   - name: Checkout Repository
     uses: actions/checkout@v4
 
-  - name: Set up Java 17
+  - name: Set up Java
     uses: actions/setup-java@v4
     with:
       distribution: temurin
@@ -34,7 +34,7 @@ steps:
     run: |
       ./apache-jmeter-5.6.3/bin/jmeter -v
 
-  - name: Run API Smoke Test
+  - name: Run Smoke Test
     run: |
       mkdir -p results
       rm -rf reports
@@ -64,18 +64,15 @@ steps:
   - name: Generate Workflow Summary
     if: always()
     run: |
-      {
-        echo "# 🚀 API Smoke Test Summary"
-        echo ""
-        echo "| Item | Value |"
-        echo "|------|-------|"
-        echo "| Repository | ${{ github.repository }} |"
-        echo "| Branch | ${{ github.ref_name }} |"
-        echo "| Trigger | ${{ github.event_name }} |"
-        echo "| Java Version | 17 |"
-        echo "| Apache JMeter | 5.6.3 |"
-        echo "| Schedule | Monday-Friday 8:00 AM (PHT) |"
-        echo "| HTML Report | Uploaded as Artifact |"
-        echo "| JTL Results | Uploaded as Artifact |"
-      } >> "$GITHUB_STEP_SUMMARY"
+      echo "# 🚀 API Smoke Test Summary" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
+      echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Repository | ${{ github.repository }} |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Branch | ${{ github.ref_name }} |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| Java | 17 |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+      echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
 ```
