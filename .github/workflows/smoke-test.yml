@@ -15,63 +15,63 @@ jobs:
     runs-on: ubuntu-latest
 
 
-  steps:
-  - name: Checkout Repository
-    uses: actions/checkout@v4
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-  - name: Set up Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
 
-  - name: Download Apache JMeter
-    run: |
-      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
-      tar -xzf apache-jmeter-5.6.3.tgz
+    - name: Download Apache JMeter
+      run: |
+        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+        tar -xzf apache-jmeter-5.6.3.tgz
 
-  - name: Verify JMeter Installation
-    run: |
-      ./apache-jmeter-5.6.3/bin/jmeter -v
+    - name: Verify JMeter Installation
+      run: |
+        ./apache-jmeter-5.6.3/bin/jmeter -v
 
-  - name: Run Smoke Test
-    run: |
-      mkdir -p results
-      rm -rf reports
-      mkdir -p reports
+    - name: Run Smoke Test
+      run: |
+        mkdir -p results
+        rm -rf reports
+        mkdir -p reports
 
-      ./apache-jmeter-5.6.3/bin/jmeter \
-        -n \
-        -t jmeter/Smoke-API.jmx \
-        -l results/results.jtl \
-        -e \
-        -o reports
+        ./apache-jmeter-5.6.3/bin/jmeter \
+          -n \
+          -t jmeter/Smoke-API.jmx \
+          -l results/results.jtl \
+          -e \
+          -o reports
 
-  - name: Upload HTML Report
-    if: always()
-    uses: actions/upload-artifact@v4
-    with:
-      name: JMeter-HTML-Report
-      path: reports/
+    - name: Upload HTML Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: JMeter-HTML-Report
+        path: reports/
 
-  - name: Upload JTL Results
-    if: always()
-    uses: actions/upload-artifact@v4
-    with:
-      name: JMeter-Results
-      path: results/results.jtl
+    - name: Upload JTL Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: JMeter-Results
+        path: results/results.jtl
 
-  - name: Generate Workflow Summary
-    if: always()
-    run: |
-      echo "# 🚀 API Smoke Test Summary" >> "$GITHUB_STEP_SUMMARY"
-      echo "" >> "$GITHUB_STEP_SUMMARY"
-      echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
-      echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
-      echo "| Repository | ${{ github.repository }} |" >> "$GITHUB_STEP_SUMMARY"
-      echo "| Branch | ${{ github.ref_name }} |" >> "$GITHUB_STEP_SUMMARY"
-      echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
-      echo "| Java | 17 |" >> "$GITHUB_STEP_SUMMARY"
-      echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
-      echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
-      echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+    - name: Generate Workflow Summary
+      if: always()
+      run: |
+        echo "# 🚀 API Smoke Test Summary" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Repository | ${{ github.repository }} |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Branch | ${{ github.ref_name }} |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Java | 17 |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
