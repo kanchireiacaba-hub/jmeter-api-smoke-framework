@@ -14,7 +14,7 @@ jobs:
   smoke-test:
     runs-on: ubuntu-latest
 
-```
+
   steps:
   - name: Checkout Repository
     uses: actions/checkout@v4
@@ -75,4 +75,3 @@ jobs:
       echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
       echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
       echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
-```
