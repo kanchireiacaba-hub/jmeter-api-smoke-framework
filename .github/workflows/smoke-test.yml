@@ -14,82 +14,99 @@ jobs:
   smoke-test:
     runs-on: ubuntu-latest
 
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: '17'
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-    - name: Download Apache JMeter
-      run: |
-        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
-        tar -xzf apache-jmeter-5.6.3.tgz
+      - name: Download Apache JMeter
+        run: |
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf apache-jmeter-5.6.3.tgz
 
-    - name: Verify JMeter Installation
-      run: |
-        ./apache-jmeter-5.6.3/bin/jmeter -v
+      - name: Verify JMeter Installation
+        run: |
+          ./apache-jmeter-5.6.3/bin/jmeter -v
 
-    - name: Run Smoke Test
-      run: |
-        mkdir -p results
-        rm -rf reports
-        mkdir -p reports
+      - name: Run Smoke Test
+        run: |
+          mkdir -p results
+          rm -rf reports
 
-        ./apache-jmeter-5.6.3/bin/jmeter \
-          -n \
-          -t jmeter/Smoke-API.jmx \
-          -l results/results.jtl \
-          -e \
-          -o reports
+          ./apache-jmeter-5.6.3/bin/jmeter \
+            -n \
+            -t jmeter/Smoke-API.jmx \
+            -l results/results.jtl \
+            -j results/jmeter.log \
+            -e \
+            -o reports
 
-    - name: Upload HTML Report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: JMeter-HTML-Report
-        path: reports/
+      - name: Show Generated Files
+        if: always()
+        run: |
+          echo "===== RESULTS ====="
+          ls -R results || true
 
-    - name: Upload JTL Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: JMeter-Results
-        path: results/results.jtl
+          echo ""
+          echo "===== REPORTS ====="
+          ls -R reports || true
 
-    - name: Generate Workflow Summary
-      if: always()
-      run: |
-        echo "# 🚀 API Smoke Test Summary" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
-        echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Repository | ${{ github.repository }} |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Branch | ${{ github.ref_name }} |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Java | 17 |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
-        
-    - name: Notify Discord
-      if: always()
-      env:
-        WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-      run: |
-        STATUS="✅ PASSED"
+      - name: Upload HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: JMeter-HTML-Report
+          path: reports/
 
-        if [ "${{ job.status }}" != "success" ]; then
-          STATUS="❌ FAILED"
-        fi
+      - name: Upload JTL Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: JMeter-Results
+          path: results/results.jtl
 
-        curl -H "Content-Type: application/json" \
-        -X POST \
-        -d "{
-          \"content\": \"🚀 **JMeter API Smoke Test**\n\nStatus: $STATUS\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nTrigger: ${{ github.event_name }}\nArtifacts: HTML Report & JTL uploaded.\"
-        }" \
-        "$WEBHOOK"
+      - name: Upload JMeter Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: JMeter-Log
+          path: results/jmeter.log
+
+      - name: Generate Workflow Summary
+        if: always()
+        run: |
+          echo "# 🚀 API Smoke Test Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Repository | ${{ github.repository }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branch | ${{ github.ref_name }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Java | 17 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| JMeter Log | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify Discord
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          STATUS="✅ PASSED"
+
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="❌ FAILED"
+          fi
+
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "{
+              \"content\": \"🚀 **JMeter API Smoke Test**\n\nStatus: $STATUS\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nTrigger: ${{ github.event_name }}\nArtifacts:\n• HTML Report\n• JTL Results\n• JMeter Log\"
+            }" \
+            "$WEBHOOK"
