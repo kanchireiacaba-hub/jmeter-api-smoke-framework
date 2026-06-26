@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: '0 0 * * 1-5'
+    - cron: '0 0 * * 1-5' # Monday-Friday 8AM Philippine Time
 
 jobs:
   smoke-test:
@@ -33,6 +33,15 @@ jobs:
         run: |
           ./apache-jmeter-5.6.3/bin/jmeter -v
 
+      - name: Initialize Variables
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          echo "JTL_FILE=results/results_${TIMESTAMP}.jtl" >> $GITHUB_ENV
+          echo "LOG_FILE=results/jmeter_${TIMESTAMP}.log" >> $GITHUB_ENV
+          echo "ZIP_FILE=JMeter-HTML-Report_${TIMESTAMP}.zip" >> $GITHUB_ENV
+
       - name: Run Smoke Test
         run: |
           mkdir -p results
@@ -41,10 +50,45 @@ jobs:
           ./apache-jmeter-5.6.3/bin/jmeter \
             -n \
             -t jmeter/Smoke-API.jmx \
-            -l results/results.jtl \
-            -j results/jmeter.log \
+            -l "${{ env.JTL_FILE }}" \
+            -j "${{ env.LOG_FILE }}" \
             -e \
             -o reports
+
+      - name: Determine Test Result
+        if: always()
+        run: |
+
+          STATUS="✅ PASSED"
+
+          TOTAL=$(tail -n +2 "${{ env.JTL_FILE }}" | wc -l)
+
+          FAILED=$(grep -c "success=false" "${{ env.JTL_FILE }}" || true)
+
+          PASSED=$((TOTAL-FAILED))
+
+          if [ "$FAILED" -gt 0 ]; then
+            STATUS="❌ FAILED"
+          fi
+
+          PASSRATE=0
+
+          if [ "$TOTAL" -gt 0 ]; then
+            PASSRATE=$((PASSED*100/TOTAL))
+          fi
+
+          echo "STATUS=$STATUS" >> $GITHUB_ENV
+          echo "TOTAL=$TOTAL" >> $GITHUB_ENV
+          echo "PASSED=$PASSED" >> $GITHUB_ENV
+          echo "FAILED=$FAILED" >> $GITHUB_ENV
+          echo "PASSRATE=$PASSRATE" >> $GITHUB_ENV
+
+      - name: Zip HTML Report
+        if: always()
+        run: |
+          if [ -d reports ]; then
+            zip -r "${{ env.ZIP_FILE }}" reports
+          fi
 
       - name: Show Generated Files
         if: always()
@@ -56,60 +100,77 @@ jobs:
           echo "===== REPORTS ====="
           ls -R reports || true
 
+          echo ""
+          echo "===== ROOT ====="
+          ls -lah
+
       - name: Upload HTML Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: JMeter-HTML-Report
-          path: reports/
+          name: HTML-Report-${{ env.TIMESTAMP }}
+          path: ${{ env.ZIP_FILE }}
 
       - name: Upload JTL Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: JMeter-Results
-          path: results/results.jtl
+          name: JTL-${{ env.TIMESTAMP }}
+          path: ${{ env.JTL_FILE }}
 
       - name: Upload JMeter Log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: JMeter-Log
-          path: results/jmeter.log
+          name: Log-${{ env.TIMESTAMP }}
+          path: ${{ env.LOG_FILE }}
 
       - name: Generate Workflow Summary
         if: always()
         run: |
-          echo "# 🚀 API Smoke Test Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Repository | ${{ github.repository }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Branch | ${{ github.ref_name }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Java | 17 |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| JMeter | 5.6.3 |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| HTML Report | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| JTL Results | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| JMeter Log | Uploaded as Artifact |" >> "$GITHUB_STEP_SUMMARY"
+          echo "# 🚀 API Smoke Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | ${{ github.repository }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ env.STATUS }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Tests | ${{ env.TOTAL }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed | ${{ env.PASSED }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed | ${{ env.FAILED }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pass Rate | ${{ env.PASSRATE }}% |" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Discord
         if: always()
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          STATUS="✅ PASSED"
 
-          if [ "${{ job.status }}" != "success" ]; then
-            STATUS="❌ FAILED"
-          fi
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           curl -H "Content-Type: application/json" \
-            -X POST \
-            -d "{
-              \"content\": \"🚀 **JMeter API Smoke Test**\n\nStatus: $STATUS\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nTrigger: ${{ github.event_name }}\nArtifacts:\n• HTML Report\n• JTL Results\n• JMeter Log\"
-            }" \
-            "$WEBHOOK"
+          -X POST \
+          -d "{
+            \"content\":\"🚀 **JMeter API Smoke Test**
+
+**Status:** ${{ env.STATUS }}
+
+📊 **Summary**
+• Total : ${{ env.TOTAL }}
+• Passed : ${{ env.PASSED }}
+• Failed : ${{ env.FAILED }}
+• Pass Rate : ${{ env.PASSRATE }}%
+
+Repository : ${{ github.repository }}
+Branch : ${{ github.ref_name }}
+Trigger : ${{ github.event_name }}
+
+Workflow:
+$RUN_URL\"
+          }" \
+          "$WEBHOOK"
 
       - name: Email Smoke Test Report
         if: always()
@@ -123,7 +184,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
 
           subject: |
-            🚀 JMeter API Smoke Test - ${{ job.status }}
+            🚀 JMeter API Smoke Test - ${{ env.STATUS }}
 
           to: ${{ secrets.MAIL_TO }}
 
@@ -138,22 +199,21 @@ jobs:
             Repository : ${{ github.repository }}
             Branch     : ${{ github.ref_name }}
             Trigger    : ${{ github.event_name }}
-            Status     : ${{ job.status }}
-            Run Number : ${{ github.run_number }}
+            Status     : ${{ env.STATUS }}
+
+            Total Tests : ${{ env.TOTAL }}
+            Passed      : ${{ env.PASSED }}
+            Failed      : ${{ env.FAILED }}
+            Pass Rate   : ${{ env.PASSRATE }}%
             ==========================================
 
             Workflow URL:
             https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Attached Files:
-            • HTML Report (.zip)
-            • JMeter Results (.jtl)
-            • JMeter Log
-
             Regards,
             GitHub Actions
 
           attachments: |
-            JMeter-HTML-Report.zip
-            results/results.jtl
-            results/jmeter.log
+            ${{ env.ZIP_FILE }}
+            ${{ env.JTL_FILE }}
+            ${{ env.LOG_FILE }}
