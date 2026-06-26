@@ -110,3 +110,50 @@ jobs:
               \"content\": \"🚀 **JMeter API Smoke Test**\n\nStatus: $STATUS\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nTrigger: ${{ github.event_name }}\nArtifacts:\n• HTML Report\n• JTL Results\n• JMeter Log\"
             }" \
             "$WEBHOOK"
+
+      - name: Email Smoke Test Report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+
+          subject: |
+            🚀 JMeter API Smoke Test - ${{ job.status }}
+
+          to: ${{ secrets.MAIL_TO }}
+
+          from: GitHub Actions
+
+          body: |
+            Hello Team,
+
+            The scheduled JMeter API Smoke Test has completed.
+
+            ==========================================
+            Repository : ${{ github.repository }}
+            Branch     : ${{ github.ref_name }}
+            Trigger    : ${{ github.event_name }}
+            Status     : ${{ job.status }}
+            Run Number : ${{ github.run_number }}
+            ==========================================
+
+            Workflow URL:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Attached Files:
+            • HTML Report (.zip)
+            • JMeter Results (.jtl)
+            • JMeter Log
+
+            Regards,
+            GitHub Actions
+
+          attachments: |
+            JMeter-HTML-Report.zip
+            results/results.jtl
+            results/jmeter.log
