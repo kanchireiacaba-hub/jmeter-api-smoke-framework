@@ -110,16 +110,6 @@ jobs:
               \"content\": \"🚀 **JMeter API Smoke Test**\n\nStatus: $STATUS\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nTrigger: ${{ github.event_name }}\nArtifacts:\n• HTML Report\n• JTL Results\n• JMeter Log\"
             }" \
             "$WEBHOOK"
-      - name: Zip HTML Report
-        if: always()
-        run: |
-          REPORT=JMeter-HTML-Report-${GITHUB_RUN_NUMBER}.zip
-
-          if [ -d reports ]; then
-            zip -r "$REPORT" reports
-          fi
-
-          echo "REPORT_NAME=$REPORT" >> $GITHUB_ENV
 
       - name: Email Smoke Test Report
         if: always()
@@ -164,6 +154,6 @@ jobs:
             GitHub Actions
 
           attachments: |
-            ${{ env.REPORT_NAME }}
+            JMeter-HTML-Report.zip
             results/results.jtl
             results/jmeter.log
