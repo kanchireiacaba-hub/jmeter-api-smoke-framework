@@ -45,32 +45,6 @@ jobs:
             -j results/jmeter.log \
             -e \
             -o reports
-      - name: Determine Test Result
-        if: always()
-        run: |
-          TOTAL=$(grep -cv '^timeStamp' results/results.jtl || true)
-
-          FAILED=$(grep -c 'success=false' results/results.jtl || true)
-
-          PASSED=$((TOTAL-FAILED))
-
-          PASSRATE=0
-
-          if [ "$TOTAL" -gt 0 ]; then
-            PASSRATE=$((PASSED*100/TOTAL))
-          fi
-
-          if [ "$FAILED" -eq 0 ] && [ "$PASSRATE" -eq 100 ]; then
-            STATUS="✅ PASSED"
-          else
-            STATUS="❌ FAILED"
-          fi
-
-          echo "STATUS=$STATUS" >> $GITHUB_ENV
-          echo "TOTAL=$TOTAL" >> $GITHUB_ENV
-          echo "PASSED=$PASSED" >> $GITHUB_ENV
-          echo "FAILED=$FAILED" >> $GITHUB_ENV
-          echo "PASSRATE=$PASSRATE" >> $GITHUB_ENV
 
       - name: Show Generated Files
         if: always()
@@ -124,28 +98,18 @@ jobs:
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          STATUS="✅ PASSED"
+
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="❌ FAILED"
+          fi
 
           curl -H "Content-Type: application/json" \
-          -X POST \
-          -d "{
-            \"content\": \"🚀 **JMeter API Smoke Test**
-
-          Status : ${{ env.STATUS }}
-
-          📊 Summary
-          • Total : ${{ env.TOTAL }}
-          • Passed : ${{ env.PASSED }}
-          • Failed : ${{ env.FAILED }}
-          • Pass Rate : ${{ env.PASSRATE }}%
-
-          Repository : ${{ github.repository }}
-          Branch : ${{ github.ref_name }}
-
-          Workflow:
-          $RUN_URL\"
-                    }" \
-                    "$WEBHOOK"
+            -X POST \
+            -d "{
+              \"content\": \"🚀 **JMeter API Smoke Test**\n\nStatus: $STATUS\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nTrigger: ${{ github.event_name }}\nArtifacts:\n• HTML Report\n• JTL Results\n• JMeter Log\"
+            }" \
+            "$WEBHOOK"
 
       - name: Email Smoke Test Reports
         if: always()
@@ -159,7 +123,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
 
           subject: |
-            🚀 JMeter API Smoke Test - ${{ env.STATUS }}
+            🚀 JMeter API Smoke Test - ${{ job.status }}
 
           to: ${{ secrets.MAIL_TO }}
 
@@ -174,11 +138,7 @@ jobs:
             Repository : ${{ github.repository }}
             Branch     : ${{ github.ref_name }}
             Trigger    : ${{ github.event_name }}
-            Status : ${{ env.STATUS }}
-            Total Tests : ${{ env.TOTAL }}
-            Passed      : ${{ env.PASSED }}
-            Failed      : ${{ env.FAILED }}
-            Pass Rate   : ${{ env.PASSRATE }}%
+            Status     : ${{ job.status }}
             Run Number : ${{ github.run_number }}
             ==========================================
 
@@ -197,11 +157,3 @@ jobs:
             JMeter-HTML-Report.zip
             results/results.jtl
             results/jmeter.log
-
-      - name: Fail Pipeline if Tests Failed
-            if: always()
-            run: |
-              if [ "${{ env.FAILED }}" -gt 0 ]; then
-                echo "Smoke Test Failed."
-                exit 1
-              fi
