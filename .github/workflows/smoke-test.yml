@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Runs every Monday-Friday at 8:00 AM Philippine Time (00:00 UTC)
+    # Monday-Friday 8:00 AM Philippine Time (00:00 UTC)
     - cron: '0 0 * * 1-5'
 
 jobs:
@@ -65,25 +65,15 @@ jobs:
       - name: Generate Workflow Summary
         if: always()
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            STATUS="✅ PASS"
-          else
-            STATUS="❌ FAIL"
-          fi
-
-          {
-            echo "# 🚀 API Smoke Test Summary"
-            echo ""
-            echo "| Item | Value |"
-            echo "|------|-------|"
-            echo "| Status | $STATUS |"
-            echo "| Repository | ${{ github.repository }} |"
-            echo "| Branch | ${{ github.ref_name }} |"
-            echo "| Trigger | ${{ github.event_name }} |"
-            echo "| Java Version | 17 |"
-            echo "| Apache JMeter | 5.6.3 |"
-            echo "| Schedule | Monday-Friday 8:00 AM (PHT) |"
-            echo "| HTML Report | Uploaded as Artifact |"
-            echo "| JTL Results | Uploaded as Artifact |"
-          } >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 API Smoke Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | ${{ github.repository }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Java | 17 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Apache JMeter | 5.6.3 |" >> $GITHUB_STEP_SUMMARY
+          echo "| HTML Report | Uploaded as Artifact |" >> $GITHUB_STEP_SUMMARY
+          echo "| JTL Results | Uploaded as Artifact |" >> $GITHUB_STEP_SUMMARY
 ```
