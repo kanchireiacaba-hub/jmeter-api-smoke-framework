@@ -78,3 +78,4 @@ steps:
         echo "| HTML Report | Uploaded as Artifact |"
         echo "| JTL Results | Uploaded as Artifact |"
       } >> "$GITHUB_STEP_SUMMARY"
+```
